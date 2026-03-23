@@ -1,4 +1,4 @@
-// DamageSystemComponent.h
+// DamageSystemComponent.h (Updated with HealthScalar, no defaults in Server_Revive)
 
 #pragma once
 
@@ -7,13 +7,13 @@
 #include "Components/ActorComponent.h"
 #include "DamageSystemComponent.generated.h"
 
-// Delegates for Blueprint events
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDamageTaken, const FDamageInfo&, DamageInfo);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDamageAvoided, const FDamageInfo&, DamageInfo);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealReceived, float, HealAmount, AActor*, Healer);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChanged, float, NewHealth, float, Delta);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnMaxHealthChanged, float, NewMaxHealth);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeath);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnRevive, AActor*, Reviver, const FTransform&, ReviveTransform);
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class DAMAGESYSTEMPLUGIN_API UDamageSystemComponent : public UActorComponent
@@ -48,6 +48,9 @@ public:
 
     UPROPERTY(BlueprintAssignable, Category = "Damage System")
     FOnDeath OnDeath;
+
+    UPROPERTY(BlueprintAssignable, Category = "Damage System")
+    FOnRevive OnRevive;
 
     // Initialization
     UFUNCTION(BlueprintCallable, Category = "Damage System")
@@ -85,6 +88,12 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Damage System")
     void ResetHealth();
 
+    UFUNCTION(BlueprintCallable, Category = "Damage System")
+    void Revive(AActor* Reviver = nullptr, float HealthScalar = 1.0f);
+
+    UFUNCTION(BlueprintCallable, Category = "Damage System")
+    void ReviveWithTransform(AActor* Reviver, const FTransform& ReviveTransform, float HealthScalar = 1.0f);
+
 protected:
     virtual void BeginPlay() override;
 
@@ -94,6 +103,7 @@ protected:
     void SetMaxHealthInternal(float NewMaxHealth);
     void SetCurrentHealthInternal(float NewHealth);
     void ResetHealthInternal();
+    void ReviveInternal(AActor* Reviver, const FTransform& ReviveTransform, float HealthScalar);
 
     // RepNotify functions
     UFUNCTION()
@@ -118,7 +128,28 @@ protected:
     UFUNCTION(Server, Reliable, WithValidation)
     void Server_ResetHealth();
 
+    UFUNCTION(Server, Reliable, WithValidation)
+    void Server_Revive(AActor* Reviver, const FTransform& ReviveTransform, float HealthScalar);
+
     // Multicast for synced events
     UFUNCTION(NetMulticast, Reliable)
     void Multicast_OnDeath();
+
+    UFUNCTION(NetMulticast, Reliable)
+    void Multicast_OnRevive(AActor* Reviver, const FTransform& ReviveTransform);
+
+    UFUNCTION(NetMulticast, Reliable)
+    void Multicast_DamageTaken(const FDamageInfo& DamageInfo);
+
+    UFUNCTION(NetMulticast, Reliable)
+    void Multicast_DamageAvoided(const FDamageInfo& DamageInfo);
+
+    UFUNCTION(NetMulticast, Reliable)
+    void Multicast_HealReceived(float HealAmount, AActor* Healer);
+
+    UFUNCTION(NetMulticast, Reliable)
+    void Multicast_HealthChanged(float NewHealth, float Delta);
+
+    UFUNCTION(NetMulticast, Reliable)
+    void Multicast_MaxHealthChanged(float NewMaxHealth);
 };

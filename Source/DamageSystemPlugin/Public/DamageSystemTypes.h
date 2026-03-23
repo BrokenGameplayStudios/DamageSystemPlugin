@@ -33,6 +33,12 @@ public:
 	float DamageAmount;
 
 	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Damage")
+	FVector DamageLocation = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Damage")
+	FVector DamageNormal = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Damage")
 	AActor* DamageCauser;
 
 	UPROPERTY(EditAnywhere, BlueprintReadwrite, Category = "Damage")
