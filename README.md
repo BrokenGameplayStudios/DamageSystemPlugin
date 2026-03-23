@@ -1,38 +1,48 @@
-# DamageSystemPlugin
+# Damage System Plugin
 
-A custom, replicated damage system plugin for Unreal Engine 5.7. This provides a component-based health management system with support for damage, healing, and events via delegates. It uses an interface-driven approach for applying damage/healing, without relying on Unreal's built-in ApplyDamage or similar functions.
+A clean, standalone, fully replicated damage & health system for Unreal Engine 5.
+
+Drop the component on any Actor/Character and go. Designed for easy extension and multiplayer.
+
+## Features
+
+* Current + Max Health (replicated)
+* Flexible `FDamageInfo` struct (damage type, response, block/parry flags, location, causer, etc.)
+* `IDamageableInterface` for any Actor
+* Server-authoritative damage and healing
+* Revival system (with optional transform + health scalar)
+* Rich Blueprint-assignable delegates
+* Ready-to-use `DamageableCharacterBase` example
+* 100% multiplayer ready
+* No dependencies
 
 ## Installation
-- Clone or download the repo: git clone https://github.com/BrokenGameplayStudios/DamageSystemPlugin.git
-- Copy the `DamageSystemPlugin` folder into your UE project's `/Plugins/` directory (create the folder if it doesn't exist).
-- Right-click your project's `.uproject` file in File Explorer and select Generate Visual Studio project files to update the solution.
-- Open the `.sln` in Visual Studio and build the project (use Development Editor configuration).
-- Launch the UE Editor, go to `Edit > Plugins`, search for "DamageSystemPlugin", enable it, and restart the Editor.
 
-For pre-built versions (if available), check the Releases page and unzip directly into `/Plugins/` (no build needed for matching platforms like Win64).
+1) Create folder `Plugins/DamageSystemPlugin` in your project
+2) Copy the plugin files from this repo into it
+3) Add the `.uplugin` file (or just enable the plugin in Editor)
+4) Restart Editor
 
-## Usage
+## Quick Start
 
-This plugin implements a custom damage system using the `IDamageableInterface` (in `DamageableInterface.h`) and `UDamageSystemComponent` (in `DamageSystemComponent.h/cpp`). Actors like characters can implement the interface to route damage/healing to the component.
+1) Add **Damage System Component** to your Character/Actor
+2) Call `InitializeHealth(YourMaxHealth)` (in BeginPlay)
+3) Implement `IDamageableInterface` on your Actor (or inherit from `DamageableCharacterBase`)
+4) To deal damage (on server):
+   - Create an `FDamageInfo` struct
+   - Call `IDamageableInterface::Execute_TakeDamage(TargetActor, DamageInfo)`
+5) For healing: `IDamageableInterface::Execute_Heal(TargetActor, Amount, Healer)`
+6) For revival: Call `Revive()` or `ReviveWithTransform()` on the component
 
-## Key Concepts
-- Component: `UDamageSystemComponent` handles replicated health state (CurrentHealth, MaxHealth), applies changes on the server, and broadcasts delegates (e.g., `OnDamageTaken`, `OnHealReceived`, `OnDeath`).
-- Interface: Use `TakeDamage(const FDamageInfo& DamageInfo)` to apply damage (returns bool if applied) or `Heal(float HealAmount, AActor* Healer)` for healing. These route to the component's `HandleIncomingDamage`/`HandleIncomingHealing`.
-- FDamageInfo: Custom struct (in `DamageSystemTypes.h`) for damage details (Amount, Causer, Type, etc.).
-- Delegates: Bind to these in C++ or Blueprints for reactions (e.g., VFX on damage taken).
+## Delegates (bind in Character or Widget)
 
-## Examples
-Look in the source files for bare-bones implementations:
-- **DamageableCharacterBase.h/cpp**: A base character class that implements `IDamageableInterface` and routes calls to the component. It also binds delegates in `BeginPlay()` (e.g., `RespondToDamageTaken` for custom logic like ragdoll on death). Use this as a starting point for your characters.
-- **DamageSystemComponent.h/cpp**: Core logic for handling damage/healing, replication, and delegates. See `HandleIncomingDamage` for how damage is processed (checks if avoidable, applies, broadcasts events, multicasts death).
-- **DamageableInterface.h**: The interface blueprint—implement in your actors to make them damageable.
+* **OnDamageTaken** → Hit reactions, VFX, sounds
+* **OnDamageAvoided** → Block/parry feedback
+* **OnHealReceived** → Healing particles
+* **OnHealthChanged** → Update health bar
+* **OnDeath** → Ragdoll, death logic
+* **OnRevive** → Respawn VFX / logic
 
-To apply damage in your own systems (e.g., a weapon class):
-- Get the target actor from a trace/overlap (e.g., in a melee attack function on server).
-- Check if it implements the interface: if `(HitActor->Implements<UDamageableInterface>())`.
-- Create `FDamageInfo` (set Amount, Causer = this, etc.).
-- Call `IDamageableInterface::Execute_TakeDamage(HitActor, YourDamageInfo)`.
+## About
 
-For healing (e.g., AOE sphere trace): Similar process, but call `IDamageableInterface::Execute_Heal(HitActor, HealAmount, this)` on valid targets.
-Test in multiplayer: Use Editor's Play > Number of Players > 2 to verify replication.
-
+A fully replicated, plug-and-play damage system designed for easy extension.
